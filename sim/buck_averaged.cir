@@ -1,0 +1,45 @@
+* LiDAR power board - block 2 (averaged model): 12 V -> 5 V buck, voltage-mode control
+* The switch + diode are replaced by their average over one period:
+*   V(sw) = d*Vin - (1-d)*VD,  d = V(ea)/Vramp  (Vramp = 2 V triangle)
+* Fast enough to test start-up, load steps and input changes over many milliseconds.
+.param VIN=12
+Vin vin 0 PWL(0 {VIN} 30m {VIN} 30.1m 9 40m 9 40.1m 15 50m 15)
+* reference with 2 ms soft-start ramp
+Vref ref 0 PWL(0 0 2m 2.5)
+R1 out inm 10k
+R2 inm 0 10k
+* type III compensation (see calc/loop.py): zero pair near the LC resonance, poles at the ESR zero and fs/2
+Rz inm z1 10k
+Cz z1 ea 33n
+Cp inm ea 330p
+R3 out r3 680
+C3 r3 inm 6.8n
+* op-amp: VCVS gain 2000 with a 10 ohm / 1 nF output pole, output clamped 0..2 V by the duty-cycle limiter below
+Eea eo 0 ref inm 2000
+Ro eo ea 10
+Co ea 0 1n
+* duty cycle d = V(ea)/2, limited to 0..0.95 with a smooth clamp
+Bd d 0 V = 0.475*(1+tanh((V(ea)/2-0.475)/0.3))
+Bsw sw 0 V = V(d)*V(vin) - (1-V(d))*0.35
+L1 sw lx 100u
+RL lx out 0.1
+C1 out c1 47u
+Resr c1 0 0.1
+* load: 0.2 A (25 ohm) until 15 ms, then 1 A (5 ohm) until 22 ms, then 0.2 A again
+Rbase out 0 25
+Rstep out st 6.25
+Sstep st 0 ld 0 SWL
+.model SWL SW(Ron=1m Roff=1G Vt=0.5)
+Vld ld 0 PWL(0 0 15m 0 15.001m 1 22m 1 22.001m 0)
+.tran 2u 50m 0 2u uic
+.meas tran v_light AVG v(out) from=12m to=15m
+.meas tran v_heavy AVG v(out) from=19m to=22m
+.meas tran v_min_step MIN v(out) from=15m to=19m
+.meas tran v_max_unload MAX v(out) from=22m to=27m
+.meas tran v_after AVG v(out) from=27m to=30m
+.meas tran v_vin9 AVG v(out) from=37m to=40m
+.meas tran v_vin15 AVG v(out) from=47m to=50m
+.meas tran v_overshoot MAX v(out) from=0 to=12m
+.meas tran t_up WHEN v(out)=4.95 RISE=1
+.meas tran t_settle WHEN v(out)=4.9 RISE=1
+.end

@@ -1,0 +1,33 @@
+Ref,Block,Value,Part example,Package,Qty,Note
+D0,1 Input protection,Schottky 3 A 40 V,SS34,SMA,1,Series reverse-polarity protection (0.4 V drop)
+C0,1 Input protection,100 uF 25 V,Electrolytic low-ESR,radial 6.3 mm,1,Input bulk capacitor
+S1,2 Buck converter,P-MOSFET 30 V,AO3401A,SOT-23,1,High-side switch (simulated as a 50 mOhm switch); needs a gate driver from 12 V
+D1,2 Buck converter,Schottky 3 A 40 V,SS34,SMA,1,Freewheeling diode
+L1,2 Buck converter,100 uH 1.5 A sat,Bourns SRR1260-101M,12 x 12 mm,1,Ripple 0.3 A at 12 V in
+C1,2 Buck converter,47 uF 10 V ESR <= 0.1 Ohm,Polymer or low-ESR electrolytic,radial / SMD,1,Ripple 30 mV p-p simulated
+R1,2 Buck converter,10 kOhm 1 %,,0603,1,Feedback divider (top)
+R2,2 Buck converter,10 kOhm 1 %,,0603,1,Feedback divider (bottom); Vout = 2.5 V x 2
+Rz,2 Buck converter,10 kOhm,,0603,1,Type III compensation
+Cz,2 Buck converter,33 nF,C0G/X7R,0603,1,Type III compensation (zero 482 Hz)
+Cp,2 Buck converter,330 pF,C0G,0603,1,Type III compensation (pole 48 kHz)
+R3,2 Buck converter,680 Ohm,,0603,1,Type III compensation
+C3,2 Buck converter,6.8 nF,C0G/X7R,0603,1,Type III compensation (zero 2.2 kHz / pole 34 kHz)
+U1,2 Buck converter,Error amplifier,"TLV9061 or any op-amp with GBW >= 5 MHz",SOT-23-5,1,Error amplifier
+U2,2 Buck converter,Comparator,TLV3501 or LM393,SOT-23-6 / SO-8,1,PWM comparator against the 100 kHz triangle
+Vref,2 Buck converter,2.5 V reference,TL431 / LM4040-2.5,SOT-23,1,With RC soft-start (2 ms)
+M1,3 Level shifter,N-MOSFET logic level,BSS138,SOT-23,2,One per UART line (TX and RX)
+Rp1,3 Level shifter,10 kOhm,,0603,2,3.3 V side pull-ups
+Rp2,3 Level shifter,10 kOhm,,0603,2,5 V side pull-ups
+M2,4 Motor driver,N-MOSFET logic level 30 V,AO3400A,SOT-23,1,Rds(on) 48 mOhm at Vgs 2.5 V
+Rg,4 Motor driver,100 Ohm,,0603,1,Gate resistor
+Rpd,4 Motor driver,100 kOhm,,0603,1,Keeps the motor off while the FPGA boots
+Dfly,4 Motor driver,Schottky 1 A 40 V,SS14,SMA,1,Flyback diode across the motor
+Rsh,5 Current sense,0.1 Ohm 1 % 0.25 W,,1206,1,100 mV at 1 A
+Ra Rc,5 Current sense,10 kOhm 0.1 %,,0603,2,Difference amplifier inputs
+Rb Rf,5 Current sense,100 kOhm 0.1 %,,0603,2,Difference amplifier gain 10
+U3,5 Current sense,Op-amp,LM358 (single supply 12 V),SO-8,1,Inputs at 4.55 V common mode
+Rflt,5 Current sense,1.6 kOhm,,0603,1,Anti-aliasing filter for the XADC (1 kHz)
+Cflt,5 Current sense,100 nF,X7R,0603,1,Anti-aliasing filter for the XADC
+J1,Connectors,2-pin 12 V input,Screw terminal 5.08 mm,THT,1,
+J2,Connectors,LiDAR connector,JST-PH / per sensor datasheet,THT,1,"5 V, GND, TX, RX, motor"
+J3,Connectors,Pmod 2x6,Pmod header (Digilent),THT,1,"To the Nexys 4 DDR: UART, PWM, XADC (JXADC header)"

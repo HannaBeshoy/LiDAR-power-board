@@ -1,0 +1,30 @@
+* LiDAR power board - block 3: bidirectional 3.3 V <-> 5 V level shifter (BSS138-type N-MOSFET)
+* Gate on 3.3 V, source on the 3.3 V side, drain on the 5 V side, 10k pull-ups on both sides.
+* Test: the FPGA (3.3 V side) sends 115200 baud data; then the LiDAR (5 V side) sends.
+.param TBIT=8.68u
+V33 v33 0 3.3
+V5 v5 0 5
+Rp1 v33 lv 10k
+Rp2 v5 hv 10k
+M1 hv v33 lv lv NBSS
+.model NBSS NMOS(Level=1 Vto=1.3 Kp=0.5 Lambda=0.01 Is=1e-14 Cgso=20p Cgdo=10p)
+* body diode: anode on the source (3.3 V side), cathode on the drain (5 V side)
+Dbody lv hv DB
+.model DB D(Is=1e-12 Cjo=30p)
+* cable + input capacitance on each side
+Cl lv 0 30p
+Ch hv 0 30p
+* open-drain drivers: low side driver pulls lv low (FPGA TX) during 0-50 us, high side driver pulls hv low (LiDAR TX) during 50-100 us
+Sfpga lv 0 dfp 0 SWD
+Slid hv 0 dli 0 SWD
+.model SWD SW(Ron=20 Roff=100Meg Vt=0.5 Vh=0)
+Vdfp dfp 0 PWL(0 0 1u 0 1.001u 1 {1u+TBIT} 1 {1.001u+TBIT} 0 {1u+3*TBIT} 0 {1.001u+3*TBIT} 1 {1u+4*TBIT} 1 {1.001u+4*TBIT} 0)
+Vdli dli 0 PWL(0 0 51u 0 51.001u 1 {51u+TBIT} 1 {51.001u+TBIT} 0 {51u+3*TBIT} 0 {51.001u+3*TBIT} 1 {51u+4*TBIT} 1 {51.001u+4*TBIT} 0)
+.tran 10n 100u
+.meas tran hv_low1 MIN v(hv) from=2u to=9u
+.meas tran hv_high1 MAX v(hv) from=12u to=26u
+.meas tran lv_low2 MIN v(lv) from=52u to=59u
+.meas tran lv_high2 MAX v(lv) from=62u to=76u
+.meas tran trise_hv TRIG v(hv) VAL=0.5 RISE=1 TARG v(hv) VAL=4.5 RISE=1
+.meas tran trise_lv TRIG v(lv) VAL=0.33 RISE=2 TARG v(lv) VAL=2.97 RISE=2
+.end

@@ -1,0 +1,5 @@
+sim/waves/
+__pycache__/
+*.raw
+*.log
+*.net

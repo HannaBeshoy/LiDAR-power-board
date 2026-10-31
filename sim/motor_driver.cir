@@ -1,0 +1,23 @@
+* LiDAR power board - block 4: low-side MOSFET PWM driver for the LiDAR scan motor
+* 3.3 V PWM from the FPGA, 25 kHz; motor modelled as 10 ohm + 1 mH + back-EMF; Schottky flyback diode.
+.param DUTY=0.6
+V5 v5 0 5
+Vpwm pwm 0 PULSE(0 3.3 0 20n 20n {DUTY*40u} 40u)
+Rg pwm g 100
+Rpd g 0 100k
+M1 d g s NLL
+Vsns s 0 0
+.model NLL VDMOS(Rg=1 Vto=1.2 Rd=20m Rs=10m Kp=20 Cgdmax=300p Cgdmin=50p Cgs=800p Cjo=200p Is=1e-12 Rb=10m)
+* motor: armature resistance, inductance, back-EMF proportional to speed (constant here)
+Lm v5 m1 1m
+Rm m1 m2 10
+Vemf m2 d 2
+Dfly d v5 DSCH
+.model DSCH D(Is=2e-5 Rs=0.03 N=1.1 Cjo=100p)
+.tran 20n 4m 3m 20n
+* MOSFET dissipation meter
+Bpm p_mos 0 V=V(d)*I(Vsns)
+.meas tran imot AVG i(Lm) from=3m to=4m
+.meas tran vdmax MAX v(d) from=3m to=4m
+.meas tran pmos AVG v(p_mos) from=3m to=4m
+.end

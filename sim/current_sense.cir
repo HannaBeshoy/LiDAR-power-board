@@ -1,0 +1,19 @@
+* LiDAR power board - block 5: high-side current sense, 0.1 ohm shunt + difference amplifier (gain 10)
+* Output 1 V per A for the Nexys 4 DDR XADC (0..1 V input range), RC filter 1 kHz.
+.param ILOAD=1
+V5 v5 0 5
+Rsh v5 lid 0.1
+Iload lid 0 PWL(0 0.2 1m 0.2 1.001m {ILOAD} 3m {ILOAD})
+* difference amplifier: R2 = 10k into each input, R1 = 100k feedback and to ground; op-amp on 12 V
+V12 v12 0 12
+Ra v5 inp 10k
+Rb inp 0 100k
+Rc lid inn 10k
+Rf inn oa 100k
+Bop oa 0 V = 6 + 6*tanh((2e5*(V(inp)-V(inn)) - 6)/6)
+Rflt oa adc 1.6k
+Cflt adc 0 100n
+.tran 1u 3m
+.meas tran vadc_02 AVG v(adc) from=0.8m to=1m
+.meas tran vadc_1 AVG v(adc) from=2.5m to=3m
+.end

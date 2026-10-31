@@ -1,0 +1,44 @@
+* LiDAR power board - block 2 (switching model): 12 V -> 5 V buck, voltage-mode control
+* Real switching at 100 kHz: triangle + comparator PWM, switch, Schottky, LC filter.
+* Starts near steady state (.ic) and runs 3 ms to measure ripple, coil current and efficiency at 1 A.
+.param VIN=12
+Vin vin 0 {VIN}
+* reference
+Vref ref 0 2.5
+R1 out inm 10k
+R2 inm 0 10k
+* type III compensation (see calc/loop.py): zero pair near the LC resonance, poles at the ESR zero and fs/2
+Rz inm z1 10k
+Cz z1 ea 33n
+Cp inm ea 330p
+R3 out r3 680
+C3 r3 inm 6.8n
+* op-amp: VCVS gain 2000 with a 10 ohm / 1 nF output pole, output clamped 0..2 V by the duty-cycle limiter below
+Eea eo 0 ref inm 2000
+Ro eo ea 10
+Co ea 0 1n
+* switching stage: comparator (switch ON while V(ea) > triangle), MOSFET switch, Schottky diode
+Vtri tri 0 PULSE(0 2 0 4.99u 4.99u 20n 10u)
+S1 vin sw ea tri SWMOD
+.model SWMOD SW(Ron=0.05 Roff=10Meg Vt=0 Vh=0)
+D1 0 sw DSCH
+.model DSCH D(Is=2e-5 Rs=0.03 N=1.1 Cjo=200p)
+L1 sw lx 100u IC=1
+RL lx out 0.1
+C1 out c1 47u
+Resr c1 0 0.1
+* load: 1 A (5 ohm)
+Rload out 0 5
+.ic v(out)=5 v(c1)=5 v(ea)=0.87 v(inm)=2.5 v(z1)=0.87 v(r3)=2.5
+.tran 20n 3m 0 20n uic
+* power meters (B sources so the same .meas lines work in LTspice and ngspice)
+Bpin p_in 0 V=-V(vin)*I(Vin)
+Bpout p_out 0 V=V(out)*V(out)/5
+.meas tran vout AVG v(out) from=2m to=3m
+.meas tran vpp PP v(out) from=2.9m to=3m
+.meas tran ilpp PP i(L1) from=2.9m to=3m
+.meas tran ilavg AVG i(L1) from=2m to=3m
+.meas tran pin AVG v(p_in) from=2m to=3m
+.meas tran pout AVG v(p_out) from=2m to=3m
+.meas tran duty AVG v(ea) from=2m to=3m
+.end

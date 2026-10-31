@@ -1,0 +1,18 @@
+* LiDAR power board - block 1: reverse-polarity protection with a series Schottky diode
+* The buck converter draws about 5.3 W / 12 V = 0.45 A; it is modelled here as 26 ohm.
+* Run with VIN=12 (normal) and VIN=-12 (battery connected the wrong way round).
+.param VIN=12
+Vin vin 0 PWL(0 0 1m {VIN})
+* 0 V source = ammeter
+Vs vin x 0
+D0 x a DSCH
+.model DSCH D(Is=2e-5 Rs=0.03 N=1.1 Cjo=200p BV=40 IBV=1m)
+C0 a 0 100u
+Rbuck a 0 26
+* diode dissipation meter
+Bpd p_d 0 V=(V(x)-V(a))*I(Vs)
+.tran 10u 5m
+.meas tran v_after AVG v(a) from=4m to=5m
+.meas tran i_in AVG I(Vs) from=4m to=5m
+.meas tran p_diode AVG v(p_d) from=4m to=5m
+.end
