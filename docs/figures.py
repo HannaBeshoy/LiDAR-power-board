@@ -23,22 +23,25 @@ def save(d, name):
     svg = d.get_imagedata('svg').decode()
     svg = re.sub(r'<\?xml[^>]*>', '', svg)
     # white background so the drawing reads on GitHub in light and dark mode
-    svg = re.sub(r'(<svg[^>]*>)', r'\1<rect width="100%" height="100%" fill="white"/>', svg, count=1)
+    # the viewBox starts at negative coordinates, so the rectangle must cover the whole viewBox, not start at (0, 0)
+    x, y, w, h = re.search(r'viewBox="([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)"', svg).groups()
+    svg = re.sub(r'(<svg[^>]*>)', rf'\1<rect x="{x}" y="{y}" width="{w}" height="{h}" fill="white"/>', svg, count=1)
     open(os.path.join(IMG, name + '.svg'), 'w').write(svg)
     print('wrote docs/img/' + name + '.svg')
 
 
 def D(unit=2.5):
     d = schemdraw.Drawing(show=False)
-    d.config(unit=unit, fontsize=12, lw=1.5)
+    d.config(unit=unit, fontsize=12, lw=1.5, margin=0.6)
     return d
 
 
 # ------------------------------------------------------------------ block diagram
 d = D()
-d.config(fontsize=11)
-B = dict(w=3.2, h=1.3)
-X = [0, 4.6, 9.2, 13.8, 18.4]
+d.config(fontsize=17)
+BW, BH, GAP = 4.4, 1.9, 1.5            # box width, height and gap between boxes
+B = dict(w=BW, h=BH)
+X = [k * (BW + GAP) for k in range(5)]
 d += (src := flow.Box(**B).at((X[0], 0)).anchor('W').label('12 V input\n(bench / 3S battery)'))
 d += (prot := flow.Box(**B).at((X[1], 0)).anchor('W').label('1 Input protection\nSS34 + 100 µF'))
 d += (buck := flow.Box(**B).at((X[2], 0)).anchor('W').label('2 Buck converter\n12 V → 5 V, 1 A'))
@@ -46,21 +49,24 @@ d += (sense := flow.Box(**B).at((X[3], 0)).anchor('W').label('5 Current sense\n0
 d += (lidar := flow.Box(**B).at((X[4], 0)).anchor('W').label('2D LiDAR\n5 V core + motor'))
 for a, b in ((src, prot), (prot, buck), (buck, sense), (sense, lidar)):
     d += flow.Arrow().at(a.E).to(b.W)
-d += (mot := flow.Box(**B).at((X[4] + 1.6, -3)).anchor('N').label('4 Motor driver\nlow-side MOSFET'))
-d += (ls := flow.Box(**B).at((X[4] + 6.2, -3)).anchor('N').label('3 Level shifter\n3.3 V ↔ 5 V'))
-d += (fpga := flow.Box(w=X[4] + 9.4 - X[2], h=1.3).at((X[2], -6.2)).anchor('NW').label('Nexys 4 DDR FPGA (3.3 V I/O)'))
+ROW2, ROW3 = -4.0, -8.2
+d += (mot := flow.Box(**B).at((lidar.S[0], ROW2)).anchor('N').label('4 Motor driver\nlow-side MOSFET'))
+d += (ls := flow.Box(**B).at((lidar.S[0] + BW + GAP + 0.6, ROW2)).anchor('N').label('3 Level shifter\n3.3 V ↔ 5 V'))
+fpga_w = ls.E[0] - X[2]
+d += (fpga := flow.Box(w=fpga_w, h=BH).at((X[2], ROW3)).anchor('NW').label('Nexys 4 DDR FPGA (3.3 V I/O)'))
+LBL = dict(fontsize=14, halign='left')
 d += flow.Arrow().at(mot.N).to(lidar.S)
-d += e.Label().at((mot.N[0] + 0.2, (mot.N[1] + lidar.S[1]) / 2)).label('motor', fontsize=9, halign='left')
+d += e.Label().at((mot.N[0] + 0.25, (mot.N[1] + lidar.S[1]) / 2)).label('motor', **LBL)
 d += flow.Arrow().at((mot.S[0], fpga.N[1])).to(mot.S)
-d += e.Label().at((mot.S[0] + 0.2, (mot.S[1] + fpga.N[1]) / 2)).label('PWM 25 kHz', fontsize=9, halign='left')
+d += e.Label().at((mot.S[0] + 0.25, (mot.S[1] + fpga.N[1]) / 2)).label('PWM 25 kHz', **LBL)
 d += flow.Arrow().at(sense.S).to((sense.S[0], fpga.N[1]))
-d += e.Label().at((sense.S[0] + 0.2, (sense.S[1] + fpga.N[1]) / 2)).label('XADC, 1 V per A', fontsize=9, halign='left')
+d += e.Label().at((sense.S[0] + 0.25, (sense.S[1] + fpga.N[1]) / 2)).label('XADC, 1 V per A', **LBL)
 d += flow.Line().at(ls.N).toy(lidar.E[1])
 d += flow.Arrow().tox(lidar.E[0])
-d += flow.Arrow().at(ls.S).to((ls.S[0], fpga.N[1]))
-d += e.Label().at((ls.S[0] + 0.2, (ls.S[1] + fpga.N[1]) / 2)).label('UART 3.3 V', fontsize=9, halign='left')
-d += e.Label().at((ls.N[0] + 0.2, (ls.N[1] + lidar.E[1]) / 2)).label('UART 5 V', fontsize=9, halign='left')
-d += flow.Arrow().at((ls.S[0] - 0.6, fpga.N[1])).to((ls.S[0] - 0.6, ls.S[1]))
+d += e.Label().at((ls.N[0] + 0.25, (ls.N[1] + lidar.E[1]) / 2)).label('UART 5 V', **LBL)
+d += flow.Arrow().at((ls.S[0] + 0.5, ls.S[1])).to((ls.S[0] + 0.5, fpga.N[1]))
+d += flow.Arrow().at((ls.S[0] - 0.5, fpga.N[1])).to((ls.S[0] - 0.5, ls.S[1]))
+d += e.Label().at((ls.S[0] + 0.75, (ls.S[1] + fpga.N[1]) / 2)).label('UART 3.3 V', **LBL)
 save(d, 'block_diagram')
 
 # ------------------------------------------------------------------ power stage (blocks 1 + 2)
